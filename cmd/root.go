@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"encoding/gob"
 	"fmt"
 	"main/utils"
 	"os"
@@ -44,6 +45,22 @@ var rootCmd = &cobra.Command{
 					2. decode hashcode
 					3. return decoded hashcode
 				*/
+				// mustang codificado para sha256:
+				hashcode := "a92f6bdb75789bccc118adfcf704029aa58063c604bab4fcdd9cd126ef9b69af"
+				var rt []map[string]string
+				arquivo, err := os.Open("rainbow_tables/jwt.secrets.bin")
+				if err != nil {
+					panic(err)
+				}
+				defer arquivo.Close()
+				decoder := gob.NewDecoder(arquivo)
+				if err := decoder.Decode(&rt); err != nil {
+					panic(err)
+				}
+				_, ok := rt[0][hashcode]
+				// nossa rainbow table ta quebrada, pau no nosso cu
+				fmt.Println(ok)
+
 				fmt.Println("opcao1")
 			case 2:
 				// read file and decode hashcodes trough the rainbow table

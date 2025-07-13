@@ -23,4 +23,7 @@ input: `
 
 	// len(option) + len(\n) = 1 + 1 = 2
 	MAX_OPTION_SIZE = 2
+
+	CHAIN_SIZE          = 10
+	PASSWORDS_BUFF_SIZE = 1000
 )
