@@ -17,9 +17,13 @@ import (
 	"runtime/pprof"
 )
 
+type ChainEntry struct {
+	Start string
+	End   string
+}
+
 func main() {
 	var err error
-	// ignore, profiling
 	f, err := os.Create("cpu.prof")
 	if err != nil {
 		log.Fatal(err)
@@ -27,7 +31,6 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	var file, bin *os.File
 	hashes := []hash.Hash{
 		sha256.New(),
 		sha512.New(),
@@ -37,29 +40,40 @@ func main() {
 		sha3.New384(),
 		md5.New(),
 	}
-	rt := make([]map[string]string, len(hashes))
-	var table map[string]string
+	rt := make([][]ChainEntry, len(hashes))
 
-	// reading passwords list
-	file, err = os.OpenFile("lists/jwt.secrets.list", os.O_RDONLY, 0777)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
+	fmt.Printf("\nCONSTRUINDO RAINBOW TABLE\n")
+	fmt.Printf("Chain length: %d\n", cmd.CHAIN_SIZE)
 
-	// building rt
-	fmt.Println("CONSTRUINDO RAINBOW TABLE!")
-	r := bufio.NewReader(file)
 	for i := range len(hashes) {
-		table = GenerateTable(r, hashes[i])
-		rt[i] = table
-		utils.ResetReader(file, r)
-	}
-	fmt.Println("RAINBOW TABLE CONSTRUÍDA")
+		fmt.Printf("Building table %d/%d (Hash function: %T)\n", i+1, len(hashes), hashes[i])
 
-	// saving the rt
+		var allChains []ChainEntry
+
+		file, err := os.OpenFile("lists/jwt.secrets.list", os.O_RDONLY, 0777)
+		if err != nil {
+			panic(err)
+		}
+
+		r := bufio.NewReader(file)
+		originalChains := GenerateTable(r, hashes[i], "original passwords")
+		allChains = append(allChains, originalChains...)
+		file.Close()
+
+		rt[i] = allChains
+		fmt.Printf("  Total chains for this hash function: %d\n\n", len(allChains))
+	}
+
+	fmt.Println("RAINBOW TABLE CONSTRUÍDA!")
+
+	totalChains := len(rt[0])
+	totalPositions := totalChains * cmd.CHAIN_SIZE
+	passwordSpace := 1680700000 // 70^5
+	coverage := float64(totalPositions) / float64(passwordSpace) * 100.0
+	fmt.Printf("- Actual coverage: %.4f%%\n\n", coverage)
+
 	fmt.Println("SERIALIZANDO RAINBOW TABLE")
-	bin, err = os.Create("rainbow_tables/jwt.secrets.bin")
+	bin, err := os.Create("rainbow_tables/jwt.secrets.bin")
 	if err != nil {
 		panic(err)
 	}
@@ -69,9 +83,10 @@ func main() {
 	if err = encoder.Encode(rt); err != nil {
 		panic(err)
 	}
-	fmt.Println("RT SERIALIZADA COM SUCESSO!")
 
-	// ignore, profiling
+	fmt.Printf("RT SERIALIZADA COM SUCESSO!\n")
+	fmt.Printf("File size: rainbow_tables/jwt.secrets.bin\n")
+
 	fMEM, err := os.Create("mem.prof")
 	if err != nil {
 		log.Fatal("could not create memory profile: ", err)
@@ -83,20 +98,34 @@ func main() {
 	}
 }
 
-func GenerateTable(r *bufio.Reader, h hash.Hash) map[string]string {
-	table := make(map[string]string)
+func GenerateTable(r *bufio.Reader, h hash.Hash, source string) []ChainEntry {
+	table := make([]ChainEntry, 0)
 	var buffer [][]byte
 	var err error
+	var processedCount int
+	const PASSWORDS_BUFF_SIZE = 10000
 
-	buffer, err = utils.ReadPasswords(r, cmd.PASSWORDS_BUFF_SIZE)
+	fmt.Printf("  Processing %s...\n", source)
+	buffer, err = utils.ReadPasswords(r, PASSWORDS_BUFF_SIZE)
 	for err != io.EOF {
 		for i := range len(buffer) {
-			utils.Chain(buffer[i], h, cmd.CHAIN_SIZE, table)
+			start := string(buffer[i])
+			end := utils.ChainReturnEnd(buffer[i], h, cmd.CHAIN_SIZE)
+			table = append(table, ChainEntry{Start: start, End: end})
+			processedCount++
 		}
-		buffer, err = utils.ReadPasswords(r, cmd.PASSWORDS_BUFF_SIZE)
+
+		if processedCount%50000 == 0 && processedCount > 0 {
+			fmt.Printf("    Processed %d passwords from %s\n",
+				processedCount, source)
+		}
+
+		buffer, err = utils.ReadPasswords(r, PASSWORDS_BUFF_SIZE)
 		if err != nil {
 			break
 		}
 	}
+
+	fmt.Printf("  Completed %s: %d chains generated\n", source, len(table))
 	return table
 }

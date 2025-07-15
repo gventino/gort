@@ -39,15 +39,8 @@ var rootCmd = &cobra.Command{
 			// capture the entries with []byte always, there are lighter than string.
 			// and the https://pkg.go.dev/crypto (native go lib for crypto hashing) works by default with []byte;
 			case 1:
-				// capture and treat hashcode
-				/*
-					1. read hashcode from stdin
-					2. decode hashcode
-					3. return decoded hashcode
-				*/
-				// mustang codificado para sha256:
 				hashcode := "a92f6bdb75789bccc118adfcf704029aa58063c604bab4fcdd9cd126ef9b69af"
-				var rt []map[string]string
+				var rt [][]utils.ChainEntry
 				arquivo, err := os.Open("rainbow_tables/jwt.secrets.bin")
 				if err != nil {
 					panic(err)
@@ -57,35 +50,45 @@ var rootCmd = &cobra.Command{
 				if err := decoder.Decode(&rt); err != nil {
 					panic(err)
 				}
-				_, ok := rt[0][hashcode]
-				// nossa rainbow table ta quebrada, pau no nosso cu
-				fmt.Println(ok)
-
+				password, found := utils.LookupInRainbowTable(hashcode, rt[1], utils.GetSHA512(), CHAIN_SIZE)
+				fmt.Println(found)
+				if found {
+					fmt.Println("Password:", password)
+				} else {
+					fmt.Println("Password not found")
+				}
 				fmt.Println("opcao1")
 			case 2:
-				// read file and decode hashcodes trough the rainbow table
-				// easy way: all in one thread:
-				/* 1. open the file
-				   2. fill a buffer with a few hashcode from the file
-				   3. decode hashcodes from the buffer
-				   4. print them out
-				   5. if still are hashcodes remaining at the file -> back to step 2
-				*/
-
-				// cool parallel way:
-				/*
-					1. open the file for reading in goroutine A
-					2. read hashcodes line by line (assuming one hashcode per line)
-					3. publish each captured (hashcode, id) to a channel
-						(the auto-incremented id helps preserve the original file order)
-					4. for each (hashcode, id) received from the channel, launch a decode hashcode goroutine B
-					5. each goroutine publishes its result as (decoded_hashcode, id) to another channel
-					6. for each (decoded_hashcode, id) from the second channel, insert it into a binary tree ordered by id
-					7. when all goroutines have finished, print the binary tree in order
-				*/
 				fmt.Println("opcao2")
 			case 3:
 				fmt.Println("CLOSING GORT, THANKS FOR USING!")
+			case 4:
+				fmt.Println("Digite a senha para testar:")
+				scanner := bufio.NewScanner(os.Stdin)
+				scanner.Scan()
+				input := scanner.Text()
+				fmt.Println("Senha inserida:", input)
+
+				chainLen := CHAIN_SIZE
+				h := utils.GetSHA512()
+				plaintext := input
+				var end string
+				fmt.Println("\n--- Gerando chain ---")
+				for i := 0; i < chainLen; i++ {
+					h.Reset()
+					h.Write([]byte(plaintext))
+					hashcode := h.Sum(nil)
+					hashHex := utils.EncodeHex(hashcode)
+					fmt.Printf("[%d] Hash: %s\n", i, hashHex)
+					reduced := utils.Reduce(hashcode, i)
+					fmt.Printf("[%d] Reduced: %s\n", i, reduced)
+					plaintext = reduced
+					if i == chainLen-1 {
+						end = reduced
+					}
+				}
+				fmt.Println("--- Fim da chain ---\n")
+				fmt.Printf("Entrada gerada na rainbow table: (%s|%s)\n\n", input, end)
 			default:
 				// continue asking for input
 				fmt.Println("error: invalid option")
