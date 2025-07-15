@@ -39,9 +39,9 @@ var rootCmd = &cobra.Command{
 			// capture the entries with []byte always, there are lighter than string.
 			// and the https://pkg.go.dev/crypto (native go lib for crypto hashing) works by default with []byte;
 			case 1:
-				hashcode := "a92f6bdb75789bccc118adfcf704029aa58063c604bab4fcdd9cd126ef9b69af"
+				hashcode := "bdb35b4df1ccd8e0f3d113eb6840472f1702f397820a716dc26b419485bd62e3d8eebd639dec11a998990f69bac58fdf4cebf1abea2f00fca62ca68f1d195e1d"
 				var rt [][]utils.ChainEntry
-				arquivo, err := os.Open("rainbow_tables/jwt.secrets.bin")
+				arquivo, err := os.Open("rainbow_tables/secrets2.bin")
 				if err != nil {
 					panic(err)
 				}
@@ -87,7 +87,7 @@ var rootCmd = &cobra.Command{
 						end = reduced
 					}
 				}
-				fmt.Println("--- Fim da chain ---\n")
+				fmt.Println("--- Fim da chain ---")
 				fmt.Printf("Entrada gerada na rainbow table: (%s|%s)\n\n", input, end)
 			default:
 				// continue asking for input

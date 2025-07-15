@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"crypto/md5"
 	"crypto/sha256"
-	"crypto/sha3"
 	"crypto/sha512"
 	"encoding/gob"
 	"fmt"
@@ -35,10 +33,10 @@ func main() {
 		sha256.New(),
 		sha512.New(),
 		sha512.New384(),
-		sha3.New256(),
-		sha3.New512(),
-		sha3.New384(),
-		md5.New(),
+		// sha3.New256(),
+		// sha3.New512(),
+		// sha3.New384(),
+		// md5.New(),
 	}
 	rt := make([][]ChainEntry, len(hashes))
 
@@ -50,7 +48,7 @@ func main() {
 
 		var allChains []ChainEntry
 
-		file, err := os.OpenFile("lists/jwt.secrets.list", os.O_RDONLY, 0777)
+		file, err := os.OpenFile("lists/secrets2.txt", os.O_RDONLY, 0777)
 		if err != nil {
 			panic(err)
 		}
@@ -73,7 +71,7 @@ func main() {
 	fmt.Printf("- Actual coverage: %.4f%%\n\n", coverage)
 
 	fmt.Println("SERIALIZANDO RAINBOW TABLE")
-	bin, err := os.Create("rainbow_tables/jwt.secrets.bin")
+	bin, err := os.Create("rainbow_tables/secrets2.bin")
 	if err != nil {
 		panic(err)
 	}
@@ -85,7 +83,7 @@ func main() {
 	}
 
 	fmt.Printf("RT SERIALIZADA COM SUCESSO!\n")
-	fmt.Printf("File size: rainbow_tables/jwt.secrets.bin\n")
+	fmt.Printf("File size: rainbow_tables/secrets2.bin\n")
 
 	fMEM, err := os.Create("mem.prof")
 	if err != nil {

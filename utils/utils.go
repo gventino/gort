@@ -10,10 +10,12 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"math/rand/v2"
 	"os"
 )
 
 var charset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%^&*?")
+
 const passwordLength = 5
 
 func BytesToOption(bytes []byte) (int, error) {
@@ -141,4 +143,12 @@ func GetSHA3_512() hash.Hash {
 
 func GetMD5() hash.Hash {
 	return md5.New()
+}
+
+func GeneratePassword(size int) {
+	buffer := make([]byte, size)
+	for i := range size {
+		buffer[i] = byte(charset[rand.IntN(len(charset))])
+	}
+	fmt.Println(string(buffer))
 }
