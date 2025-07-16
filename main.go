@@ -42,13 +42,13 @@ func main() {
 	}
 	fmt.Println("CLOSING GoRt, THANKS FOR USING!")
 	// this looks very cool, i like it pretty much
-	time.Sleep(time.Millisecond * 500)
+	time.Sleep(time.Millisecond * 250)
 	fmt.Print(".")
-	time.Sleep(time.Millisecond * 500)
+	time.Sleep(time.Millisecond * 250)
 	fmt.Print(".")
-	time.Sleep(time.Millisecond * 500)
+	time.Sleep(time.Millisecond * 250)
 	fmt.Print(".")
-	time.Sleep(time.Millisecond * 500)
+	time.Sleep(time.Millisecond * 250)
 	fmt.Print("\033[H\033[2J")
 }
 
@@ -65,7 +65,7 @@ func BytesToOption(bytes []byte) (int, error) {
 }
 
 func DecryptHashcode() {
-	hashcode := "6f438c5ce2bf7073fcf6fcd9c2a2dfb5faa60b919dc87a62fc2d00eb08d025aca662a28e42c44ae8f29a7fb610920b2f7f3cee0346e80e49312b764ff33be3b9"
+	hashcode := "b739002e87bcc6c7b7c2dd665a6235aff5fbe35aaf62f198b36edd03abc1be90859e4deab997e98122c34fcf1aedf9850d02b51d47c8e4e4c79d137bfb4d41c5"
 	var table RainbowTable
 	f, err := os.Open(BIN_PATH)
 	if err != nil {

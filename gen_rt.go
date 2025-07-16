@@ -73,11 +73,13 @@ func FillTable(r *bufio.Reader, table RainbowTable) RainbowTable {
 	buffer, err = ReadPasswords(r, buffer, PASSWORDS_BUFF_SIZE)
 
 	// bufferized file reading
+	var start string
+	var end []byte
 	for err != io.EOF {
 		for i := range len(buffer) {
-			start := string(buffer[i])
-			end := Chain(buffer[i], hasher)
-			table[start] = string(end)
+			start = string(buffer[i])
+			end = Chain(buffer[i], hasher)
+			table[string(end)] = string(start)
 			processedCount++
 		}
 

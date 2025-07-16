@@ -24,8 +24,9 @@ func Reduce(hashcode []byte, pos int) []byte {
 
 func Chain(startPassword []byte, hasher hash.Hash) []byte {
 	currentPassword := startPassword
+	var hashVal []byte
 	for i := range CHAIN_SIZE {
-		hashVal := Hash(currentPassword, hasher)
+		hashVal = Hash(currentPassword, hasher)
 		currentPassword = Reduce(hashVal, i)
 	}
 	return currentPassword
