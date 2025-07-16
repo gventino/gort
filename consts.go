@@ -3,7 +3,7 @@ package main
 // RAINBOW TABLE CONSTS
 const (
 	CHARSET         = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%^&*?"
-	CHAIN_SIZE      = 1000
+	CHAIN_SIZE      = 2000
 	NUM_PASSWORDS   = 1680700
 	PASSWORD_LENGTH = 5
 
