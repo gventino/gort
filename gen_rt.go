@@ -1,17 +1,17 @@
 package main
 
 import (
-	"bufio"
 	"crypto/sha512"
 	"encoding/gob"
 	"fmt"
-	"io"
 	"log"
 	"os"
+	"runtime"
 	"runtime/pprof"
+	"sync"
 )
 
-func GenerateTable(passwordsPath, binPath string) {
+func GenerateTable(_ string, binPath string) {
 	// CPU PROFILING
 	var err error
 	fCPU, err := os.Create("profs/rt_cpu.prof")
@@ -23,16 +23,8 @@ func GenerateTable(passwordsPath, binPath string) {
 
 	fmt.Printf("\nBUILDING RAINBOW TABLE\n")
 
-	// build process
-	file, err := os.OpenFile(passwordsPath, os.O_RDONLY, 0777)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	r := bufio.NewReader(file)
-
 	table := make(RainbowTable, NUM_PASSWORDS)
-	FillTable(r, table)
+	FillTable(table)
 	fmt.Println("Rainbow table finished!")
 
 	fmt.Println("Serializing rainbow table...")
@@ -59,72 +51,49 @@ func GenerateTable(passwordsPath, binPath string) {
 	}
 }
 
-func FillTable(r *bufio.Reader, table RainbowTable) RainbowTable {
-	processedCount := 0
-	hasher := sha512.New()
+func FillTable(table RainbowTable) RainbowTable {
+	var wg sync.WaitGroup
+	numWorkers := runtime.NumCPU()
+	jobs := make(chan struct{}, 1000)
+	result := make(chan struct{ end, start string }, 1000)
+	used := sync.Map{}
 
-	// buffer alloc
-	buffer := make([][]byte, PASSWORDS_BUFF_SIZE)
-	for i := range len(buffer) {
-		buffer[i] = make([]byte, PASSWORD_LENGTH)
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			hasher := sha512.New()
+			for range jobs {
+				var pw string
+				for {
+					pw = GeneratePassword(PASSWORD_LENGTH)
+					if _, exists := used.LoadOrStore(pw, struct{}{}); !exists {
+						break
+					}
+				}
+				end := Chain([]byte(pw), hasher)
+				result <- struct{ end, start string }{string(end), pw}
+			}
+			wg.Done()
+		}()
 	}
 
-	var err error
-	buffer, err = ReadPasswords(r, buffer, PASSWORDS_BUFF_SIZE)
-
-	// bufferized file reading
-	var start string
-	var end []byte
-	for err != io.EOF {
-		for i := range len(buffer) {
-			start = string(buffer[i])
-			end = Chain(buffer[i], hasher)
-			table[string(end)] = string(start)
-			processedCount++
+	go func() {
+		for i := 0; i < NUM_PASSWORDS; i++ {
+			jobs <- struct{}{}
 		}
+		close(jobs)
+	}()
 
-		if processedCount%50000 == 0 && processedCount > 0 {
-			fmt.Printf("Processed %d passwords\n", processedCount)
-		}
-
-		buffer, err = ReadPasswords(r, buffer, PASSWORDS_BUFF_SIZE)
-		if err != nil {
-			break
+	for i := 0; i < NUM_PASSWORDS; i++ {
+		r := <-result
+		table[r.end] = r.start
+		if (i+1)%5000 == 0 || i+1 == NUM_PASSWORDS {
+			percent := float64(i+1) / float64(NUM_PASSWORDS) * 100
+			fmt.Printf("Processed %d/%d (%.2f%%) passwords\n", i+1, NUM_PASSWORDS, percent)
 		}
 	}
+	wg.Wait()
+	close(result)
 	fmt.Printf("Table Completed: %d chains generated\n", len(table))
 	return table
-}
-
-func ReadLine(r *bufio.Reader) ([]byte, error) {
-	var b byte
-	var err error
-	var word []byte
-	for b != '\n' {
-		b, err = r.ReadByte()
-		if err != nil {
-			return word, err
-		}
-		word = append(word, b)
-	}
-	return word, nil
-}
-
-func ReadPasswords(r *bufio.Reader, buffer [][]byte, max int) ([][]byte, error) {
-	var err error
-
-	for i := range max {
-		var line []byte
-		line, err = ReadLine(r)
-
-		if len(line) > 0 {
-			buffer[i] = line
-		}
-
-		if err != nil {
-			return buffer, err
-		}
-	}
-
-	return buffer, nil
 }

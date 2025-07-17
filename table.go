@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"hash"
 )
@@ -9,6 +10,7 @@ import (
 type RainbowTable map[string]string
 
 func Hash(plaintext []byte, hasher hash.Hash) []byte {
+	hasher.Reset()
 	hasher.Write(plaintext)
 	return hasher.Sum(nil)
 }
@@ -33,11 +35,14 @@ func Chain(startPassword []byte, hasher hash.Hash) []byte {
 }
 
 func Lookup(targetHash string, table RainbowTable) ([]byte, bool) {
-	fmt.Printf("Searching password for hashcode: %s\n", targetHash)
 	var currentHash, tempPassword, hashVal, regenPassword, currentRegenHash []byte
 	hasher := sha512.New()
 	for pos := CHAIN_SIZE - 1; pos >= 0; pos-- {
-		currentHash = []byte(targetHash)
+		var err error
+		currentHash, err = hex.DecodeString(targetHash)
+		if err != nil {
+			return []byte(""), false
+		}
 
 		tempPassword = Reduce(currentHash, pos)
 		for i := pos + 1; i < CHAIN_SIZE; i++ {
@@ -46,16 +51,15 @@ func Lookup(targetHash string, table RainbowTable) ([]byte, bool) {
 		}
 
 		if startPassword, found := table[string(tempPassword)]; found {
-			fmt.Println("Possible Match! Recreating chain from:\n\t", startPassword)
 			regenPassword = []byte(startPassword)
 			for i := range CHAIN_SIZE {
 				currentRegenHash = Hash(regenPassword, hasher)
-				if string(currentRegenHash) == targetHash {
+				currentRegenHashHex := fmt.Sprintf("%x", currentRegenHash)
+				if currentRegenHashHex == targetHash {
 					return regenPassword, true
 				}
 				regenPassword = Reduce(currentRegenHash, i)
 			}
-			fmt.Println("Fake News!!! Target hashcode not found in Chain")
 		}
 	}
 

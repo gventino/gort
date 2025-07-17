@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/sha512"
 	"encoding/gob"
 	"fmt"
 	"os"
@@ -17,7 +18,7 @@ func main() {
 	scanner.Scan()
 	opt, _ := BytesToOption(scanner.Bytes())
 
-	for opt != 4 {
+	for opt != 5 {
 		// cleaning stdout buffer with ansi scape code
 		fmt.Print("\033[H\033[2J")
 		switch opt {
@@ -26,9 +27,11 @@ func main() {
 		case 1:
 			GeneratePasswords(PASSWORDS_PATH, PASSWORD_LENGTH, NUM_PASSWORDS)
 		case 2:
-			GenerateTable(PASSWORDS_PATH, BIN_PATH)
+			GenerateTable("", BIN_PATH)
 		case 3:
 			DecryptHashcode()
+		case 4:
+			TestRandomPasswords(5)
 		default:
 			// continue asking for input
 			fmt.Println("error: invalid option")
@@ -65,7 +68,10 @@ func BytesToOption(bytes []byte) (int, error) {
 }
 
 func DecryptHashcode() {
-	hashcode := "b739002e87bcc6c7b7c2dd665a6235aff5fbe35aaf62f198b36edd03abc1be90859e4deab997e98122c34fcf1aedf9850d02b51d47c8e4e4c79d137bfb4d41c5"
+	fmt.Print("Enter the hashcode to test: ")
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	hashcode := scanner.Text()
 	var table RainbowTable
 	f, err := os.Open(BIN_PATH)
 	if err != nil {
@@ -83,5 +89,36 @@ func DecryptHashcode() {
 		fmt.Println("Password:", password)
 	} else {
 		fmt.Println("Password not found!!!")
+	}
+}
+
+func TestRandomPasswords(passwordNumber int) {
+	fmt.Println("Testing", passwordNumber, "random passwords against the rainbow table...")
+	var table RainbowTable
+	f, err := os.Open(BIN_PATH)
+	if err != nil {
+		fmt.Println("Could not open rainbow table file:", err)
+		return
+	}
+	defer f.Close()
+	decoder := gob.NewDecoder(f)
+	if err := decoder.Decode(&table); err != nil {
+		fmt.Println("Could not decode rainbow table:", err)
+		return
+	}
+	hasher := sha512.New()
+	for i := 1; i <= passwordNumber; i++ {
+		pw := GeneratePassword(PASSWORD_LENGTH)
+		hasher.Reset()
+		hasher.Write([]byte(pw))
+		hash := hasher.Sum(nil)
+		hashHex := fmt.Sprintf("%x", hash)
+		fmt.Printf("%d) Password: %s\n   Hash: %s\n", i, pw, hashHex)
+		foundPw, found := Lookup(hashHex, table)
+		if found {
+			fmt.Printf("   FOUND in rainbow table: %s\n", foundPw)
+		} else {
+			fmt.Println("   NOT FOUND in rainbow table.")
+		}
 	}
 }

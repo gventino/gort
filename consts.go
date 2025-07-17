@@ -3,8 +3,8 @@ package main
 // RAINBOW TABLE CONSTS
 const (
 	CHARSET         = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%^&*?"
-	CHAIN_SIZE      = 2000
-	NUM_PASSWORDS   = 1680700
+	CHAIN_SIZE      = 1000
+	NUM_PASSWORDS   = 3870000
 	PASSWORD_LENGTH = 5
 
 	// MENU CONSTS
@@ -24,7 +24,8 @@ Choose an option from below:
 	1. Generate Passwords
 	2. Generate Table
 	3. Try to decrypt hashcode
-	4. Close
+	4. Test 5 random passwords in rainbow table
+	5. Close
 
 input: `
 
