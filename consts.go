@@ -32,7 +32,7 @@ input: `
 	MAX_INPUT_SIZE  = 20
 	MAX_OPTION_SIZE = 2
 
-	PASSWORDS_BUFF_SIZE = 10000
+	PASSWORDS_BUFF_SIZE = 100000
 	PASSWORDS_PATH      = "passwords/secrets.txt"
 	BIN_PATH            = "tables/rainbow_table.bin"
 )
