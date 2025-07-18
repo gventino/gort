@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-func GenerateTable(_ string, binPath string) {
+func GenerateTable(binPath string) {
 	// CPU PROFILING
 	var err error
 	fCPU, err := os.Create("profs/rt_cpu.prof")

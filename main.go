@@ -27,11 +27,11 @@ func main() {
 		case 1:
 			GeneratePasswords(PASSWORDS_PATH, PASSWORD_LENGTH, NUM_PASSWORDS)
 		case 2:
-			GenerateTable("", BIN_PATH)
+			GenerateTable(BIN_PATH)
 		case 3:
 			DecryptHashcode()
 		case 4:
-			TestRandomPasswords(5)
+			TestRandomPasswords(100)
 		default:
 			// continue asking for input
 			fmt.Println("error: invalid option")
@@ -86,7 +86,7 @@ func DecryptHashcode() {
 	password, found := Lookup(hashcode, table)
 	fmt.Println(found)
 	if found {
-		fmt.Println("Password:", password)
+		fmt.Println("Password:", string(password))
 	} else {
 		fmt.Println("Password not found!!!")
 	}
@@ -116,9 +116,9 @@ func TestRandomPasswords(passwordNumber int) {
 		fmt.Printf("%d) Password: %s\n   Hash: %s\n", i, pw, hashHex)
 		foundPw, found := Lookup(hashHex, table)
 		if found {
-			fmt.Printf("   FOUND in rainbow table: %s\n", foundPw)
+			fmt.Printf("\tFOUND in rainbow table: %s\n", foundPw)
 		} else {
-			fmt.Println("   NOT FOUND in rainbow table.")
+			fmt.Println("\tNOT FOUND in rainbow table.")
 		}
 	}
 }
