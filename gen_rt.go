@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"crypto/sha512"
 	"encoding/gob"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"runtime"
@@ -94,6 +96,90 @@ func FillTable(table RainbowTable) RainbowTable {
 	}
 	wg.Wait()
 	close(result)
+
+	// reading human like passwords from file
+	filenames := []string{"rockyou.txt", "kaonashi14M.txt", "hashmob.net.medium.found.txt"}
+	for i := range len(filenames) {
+		table = ReadFromFile(table, filenames[i])
+	}
+
 	fmt.Printf("Table Completed: %d chains generated\n", len(table))
 	return table
+}
+
+func ReadFromFile(table RainbowTable, filename string) RainbowTable {
+	// build process
+	filepath := "passwords/" + filename
+	file, err := os.OpenFile(filepath, os.O_RDONLY, 0777)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	// scanner:
+	r := bufio.NewReader(file)
+
+	// buffer alloc
+	buffer := make([][]byte, PASSWORDS_BUFF_SIZE)
+	for i := range len(buffer) {
+		buffer[i] = make([]byte, PASSWORD_LENGTH)
+	}
+
+	// bufferized file reading
+	hasher := sha512.New()
+	processedCount := 0
+	var start string
+	var end []byte
+	buffer, err = ReadPasswords(r, buffer, PASSWORDS_BUFF_SIZE)
+	for err != io.EOF {
+		for i := range len(buffer) {
+			start = string(buffer[i])
+			end = Chain(buffer[i], hasher)
+			table[string(end)] = string(start)
+			processedCount++
+		}
+
+		if processedCount%50000 == 0 && processedCount > 0 {
+			fmt.Printf("Processed %d passwords from file %s\n", processedCount, filename)
+		}
+
+		buffer, err = ReadPasswords(r, buffer, PASSWORDS_BUFF_SIZE)
+		if err != nil {
+			break
+		}
+	}
+	return table
+}
+
+func ReadLine(r *bufio.Reader) ([]byte, error) {
+	var b byte
+	var err error
+	var word []byte
+	for b != '\n' {
+		b, err = r.ReadByte()
+		if err != nil {
+			return word, err
+		}
+		word = append(word, b)
+	}
+	return word, nil
+}
+
+func ReadPasswords(r *bufio.Reader, buffer [][]byte, max int) ([][]byte, error) {
+	var err error
+
+	for i := range max {
+		var line []byte
+		line, err = ReadLine(r)
+
+		if len(line) > 0 {
+			buffer[i] = line
+		}
+
+		if err != nil {
+			return buffer, err
+		}
+	}
+
+	return buffer, nil
 }
